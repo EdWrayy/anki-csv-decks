@@ -1,0 +1,350 @@
+"What is an I/O Module and a Hardware Module for an embedded system?","Hardware Module
+Any specialized hardware other than the CPU and memory
+E.g: Digital Signal Processor (DSP), Motor Controller
+
+I/O Module
+A specific type of hardware module that handles input/output operations.
+Acts as an interface between the CPU and external devices (sensors, actuators, communication buses).
+E.g: ADC (Analog-to-Digital Converter)"
+"What are Control registers?","Control registers are special-purpose registers in a processor or peripheral device used to configure, manage, and control hardware functionality. 
+Unlike general-purpose registers that store data, control registers store settings, flags, and status information.
+Their inputs or outputs are wired into other circuits
+Writing to control registers modifies hardware behavior without software overhead.
+Used in real-time systems where direct hardware control is necessary.
+
+Example:
+GPIO Mode Register (GPIOx_MODER)
+In embedded systems, this register controls whether a pin is configured as input, output or an alternate function"
+"How does the CPU interact with the control registers?","There are two methods:
+
+Special I/O Instructions (a.k.a Port Mapped I/O)
+The CPU has specific instructions in its instruction set to access I/O.
+Different instructions to accessing memory as usual
+
+Memory Mapped I/O (MMIO)
+I/O registers have addresses in reserved memory space.
+The CPU can access data as if it were accessing memory as usual."
+"MMIO vs Special I/O Instructions trade offs","Size of address space
+MMIO means there are less address spaces in memory to be used for data
+But it means there are much more available addresses for I/O devices
+
+Size of instruction set 
+Instruction set bits are precious and I/O instructions uses up more of them
+
+Convenience of access
+Easier to access MMIO
+
+Cache Compilications
+MMIO means that input registers may change without instructions from the CPU"
+"Harvard vs Von Neuman Architecture","Harvard
+Key Features:Separate memory for instructions and data.
+Independent buses for instruction and data fetch, allowing simultaneous access.
+Commonly used in embedded systems, microcontrollers, and DSPs (Digital Signal Processors).
+
+Trade-offs:
+More complex hardware due to separate memory buses.
+More expensive to implement at scale.
+Less flexible in handling self-modifying code (since instructions and data are strictly separated).
+
+Von Neuman
+Shared memory for both instructions and data.
+Uses a single bus, meaning instructions and data are fetched sequentially.
+Used in most general-purpose computers, including PCs, laptops, and servers.
+There is shared memory for program instructions and data
+Popular in most PCs 
+
+Trade-offs:
+Slower execution speed due to the ""Von Neumann bottleneck"" (single bus limits memory access speed).
+Simpler and more cost-effective to implement.
+Allows self-modifying code, which can be useful in certain applications (e.g., JIT compilation)."
+"RISC vs CISC","RISC (Reduced Instruction Set Computing)
+Smaller number of simpler instructions that typically execute in one clock cycle.
+Fixed-length instructions make pipelining easier.
+Used in ARM
+Requires more registers to reduce memory access.
+
+Trade-offs:
+More instructions required for complex operations.
+Heavily relies on compiler optimization to break down complex tasks into simpler instructions.
+Larger program size due to simpler instructions.
+
+CISC (Complex Instruction Set Computing)More complex instructions, some of which take multiple clock cycles to execute.
+Variable-length instructions allow for dense code.
+Used in x86 (Intel & AMD).
+Can use fewer registers because instructions can operate directly on memory.
+
+Trade-offs:
+More complex hardware needed to decode and execute instructions.
+Harder to implement pipelining efficiently.
+Higher power consumption due to complex instruction decoding. (big implications on efficiency nowadays)"
+"What is a SoC","A SoC (System on Chip) is a single chip that contains all the main parts of a computer, like the CPU, memory, storage, and input/output connections. 
+It is used in smartphones, tablets, and IoT devices because it is small, fast, and energy-efficient."
+"Features of the RasPi Pico, RP2040 and Cortex-M0+?","RasPi Pico
+A microcontroller board that includes:
+
+RP2040 microcontroller (dual-core ARM Cortex-M0+)
+Power supply via micro-USB (5V input, 3.3V logic level)
+Clock (up to 133 MHz configurable clock)
+Connectivity: UART, I2C, SPI, and USB 1.1 (no built-in Wi-Fi/Bluetooth)
+Extra peripherals:
+
+26 GPIO pins (including 3 analog inputs)
+Programmable I/O (PIO) for custom interfaces
+On-chip timer, PWM, and ADC
+RP2040
+The chip inside the Raspberry Pi Pico, designed by Raspberry Pi:
+Dual-core ARM Cortex-M0+ CPU (up to 133 MHz)
+264 KB RAM (no built-in Flash, requires external storage)
+Flexible I/O with PIO (Programmable I/O)
+DMA (Direct Memory Access) support
+USB 1.1 Host/Device support
+No built-in Wi-Fi or Bluetooth
+ARM Cortex-M0+
+A low-power ARM processor design used in microcontrollers (like the RP2040)
+32-bit RISC architecture (ARMv6-M ISA)
+Designed for efficiency (low power, small size, fast execution)
+Used in embedded systems and IoT devices
+No built-in floating-point unit (FPU) (relies on software for floating-point math)"
+"Typical Run-time Errors in Embedded Systems","Boundary Violations:
+
+Counter overflow (e.g., integer wrap-around)
+Buffer overflow (writing beyond allocated memory)
+Wrong pointer usage (dereferencing invalid memory)
+
+
+
+Unanticipated Program Flow:
+
+Interrupt issues (unexpected behavior from interrupts)
+Race conditions (multiple processes accessing shared data incorrectly)
+
+
+
+Incomplete State Preservation:
+
+Incorrect handling of registers, variables, or peripheral states across function calls or power cycles"
+"How to Debug Embedded Systems","Gather Data:
+
+Software instrumentation is difficult.
+Use hardware instrumentation (e.g., LEDs, serial output).
+
+
+
+Make Bug Reproducible:
+
+Identify the fault condition (when and how it occurs).
+
+
+
+Use Debugging Tools:
+
+Simulators (test software behavior without real hardware).
+Oscilloscopes & Logic Analyzers (analyze signals and timing)."
+"How are interrupts handled in event-driven embedded systems?","Main Loop & Interrupts:
+
+Embedded systems run a main loop and respond to interrupts for real-time processing.
+
+
+
+Precise Interrupt Handling:
+
+State saving: Program Counter (PC) and registers are preserved.
+Interrupt Service Routine (ISR) executes.
+State restoration: Resumes execution after ISR.
+
+
+
+Interrupt Handling Steps:
+
+Processor completes the current instruction.
+Acknowledges interrupt.
+Hardware saves some state.
+Software may disable further interrupts (to prevent nesting issues).
+Performs interrupt task.
+Restores software state.
+Re-enables interrupts.
+Hardware restores state and resumes execution."
+"Key principles for designing efficient ISRs in embedded systems?","Keep ISRs Fast:
+
+Avoid long execution times.
+Prefer non-interruptible ISRs (simplifies timing).
+Helps in bounding performance and ensuring real-time behavior.
+
+
+
+Keep ISRs Simple:
+
+Debugging ISRs is difficult, so minimize complexity.
+Offload complex tasks to the main loop or background processing.
+
+
+
+Minimize Latency:
+
+How long does it take to respond?
+Is the delay deterministic? (Critical for real-time systems)
+Both hardware and software contribute to latency.
+
+
+
+Reduce Jitter:
+
+Jitter is the variation in response time between ISRs.
+Response time depends on CPU state when the interrupt occurs."
+"How are Interrupt Service Routines (ISRs) handled in C?","C does not directly support ISRs, but compilers provide extensions for declaring them.
+ISR declaration is compiler-specific (e.g. IRQHandler() in ARM).
+If a variable is used in both the ISR and the main program, it must be declared volatile to prevent incorrect compiler optimizations.
+Volatile variables are not cached in registers, ensuring correct behavior but making them slower.
+Optimization tip: If a volatile variable is used frequently, copy it into a local variable inside functions to improve speed."
+"Event Characteristics and Interrupt Vectors","Types of Events:
+
+Internal Events (generated within the system):
+
+Timer overflow
+Completion of ADC conversion
+
+External Events (caused by external devices):
+
+Keyboard input
+Analog comparator exceeding a threshold
+
+
+
+
+
+Timing Considerations:
+
+Maximum arrival rate: How often the interrupt occurs.
+Deadline for servicing: How quickly it must be handled.
+Cost if missed? (System failure, data loss, etc.)
+
+
+
+Interrupt Vector Table:
+
+An interrupt vector is a memory address that points to the Interrupt Service Routine (ISR) for a specific interrupt.
+The processor needs an ISR (Interrupt Service Routine) for each enabled interrupt source.
+A table at the start of program memory (Interrupt Vector Table) stores the address of the ISR for each interrupt source.
+When an interrupt occurs, the processor branches to the corresponding ISR address from this table"
+"Processes (what are they and what are their states) in Multitasking","Back:
+
+A process/task/thread is an abstraction of a program in execution.
+Multitasking allows the CPU to switch between tasks when one is waiting for I/O (pseudo-parallelism).
+
+Process States:
+
+Running – Actively using the CPU.
+Ready – Runnable but waiting for CPU time.
+Blocked – Waiting for an external event (e.g., I/O completion)."
+"Scheduling (Definition, Requirements, Algorithm Overview)","Decides which process from the set of ready processes will get the CPU next
+
+Requirements
+FairnessResponse timeThroughputTurnaroundCPU utilizationDeadlines (hard / soft)PredictabilityAdherence to policy
+
+Algorithms
+First-come first-served
+Shortest job firstRound robin (quanta, preemptive, context switch)Shortest remaining timePriority Scheduling
+Lottery Scheduling"
+"Context switching (+Types)","Context switching is the process of saving and restoring a task's execution state when switching between processes or threads. It is required for multitasking.
+
+Handled by the OS
+
+Preemptive Multitasking: The OS forcibly switches tasks based on a scheduler (e.g., time slice, priority).
+Cooperative Multitasking: Tasks voluntarily yield control when they are ready (less overhead but risk of blocking)."
+"Round Robin Scheduling","Round Robin Scheduling is a preemptive scheduling algorithm where each process gets a fixed time slice (quantum) and runs in a cyclic order.
+The time quantum (also called time slice) is the fixed amount of CPU time a process gets before the scheduler moves to the next process.
+
+Types:
+Short Quantum:
+
+Fast response time
+High context switching overhead
+
+
+Long Quantum:
+
+More efficient (fewer context switches)
+Longer response time for short tasks"
+"Lottery Scheduling (pros/cons)","Lottery Scheduling is a probabilistic CPU scheduling algorithm where:
+
+Each process receives ""lottery tickets"" based on its required CPU share.
+A ticket is randomly selected, and the CPU is allocated to the process holding that ticket.
+Processes can share tickets with other processes (useful for cooperation).
+Advantage: Fair and flexible CPU distribution.
+Disadvantage: No strict guarantees on when a process will get CPU time"
+"CPU Utilization formula, + from a set of periodic tasks + schedubility + assumptions","Formula:
+U = Ctotal - Cidle ≤ 1
+Where:
+U = CPU Utilization
+Ctotal = Total CPU time available (100%)
+Cidle = Fraction of CPU time spent in idle task or sleeping
+
+
+From a set of periodic tasks
+Given a set of Tasks T1 ... Tn with a periodictiy pi and fixed CPU time ci the utilization is: U = Σni=1 (ci / pi) 
+A real-time system is schedulable if U = Σni=1 (ci / pi) ≤ 1, meaning all tasks meet their deadlines all the time.
+
+Assumptions:
+Tasks are periodicThe deadline for a task is its next invocationContext switches take no time"
+"How to schedule real time systems?","Real-time systems require predictable worst-case performance to ensure tasks meet their deadlines.
+
+
+Simple Case (Static Cyclic Scheduling)
+
+All tasks finish within the period of the most frequent task.
+A fixed schedule (table-based) assigns time slots to tasks.
+
+
+
+Priority-Based Scheduling
+
+Fixed (Static) Priority:
+
+Assigned at compile time and does not change.
+Example: Rate Monotonic Scheduling (RMS).
+
+
+Dynamic Priority:
+
+Changes during runtime based on task urgency.
+Example: Earliest Deadline First (EDF)."
+"Rate Monotonic Scheduling","Rate Monotonic Scheduling (RMS) is a fixed-priority scheduling algorithm for real-time systems
+
+Requirements:
+Tasks are independentTasks have fixed CPU requirement
+Free context switchingDeadline is task period
+Qualities:
+The most frequent tasks receives the highest priority
+If RMS can be used, it is optimal. 
+No other fixed-priority assignment performs better.
+RMS cannot fully utilize 100% of CPU time due to scheduling inefficiencies, but the exact CPU usage limit depends on the number of tasks.
+U = Σni=1 (ci / pi) ≤ n(21/n - 1), as n  → ∞, U ≤ ln2 ≈ 69%
+This means we often waste around 30% of CPU time, however we can use this time to perform low priority, non-real time tasks."
+"Harmonic Task Sets","Every task period is a multiple of the period of any hgiher priority taskE.g: p1  = 15ms, p2  = 30ms, p3  = 120msRMS can reach 100% utilization with harmonic task setsHarmonic tasks sets are easy to analyze due to the regular execution pattern"
+"Earliest Deadline First (EDF)","EDF is a dynamic priority scheduler that always runs the task with the earliest deadline (most urgent) first.
+Utilization condition: The system is schedulable if:
+U = Σni=1 (ci / pi) ≤ 1
+
+Advantages: Optimal: If a task set can be scheduled, EDF will schedule it. 
+Can handle dynamically changing task priorities. 
+
+Disadvantages: More complex than Rate Monotonic Scheduling (RMS). 
+Higher overhead due to frequent priority recalculations."
+"Riverside/Irvine Operating System (RIOS)","A lightweight, portable task scheduler designed for embedded systems education.
+Developed collaboratively by the University of California
+≈ 20 lines of C  → understandable.
+
+Cooperative Multitasking: Tasks run until they voluntarily yield. 
+Task List: Tasks are stored in a simple queue and executed sequentially. 
+No Preemption: The system does not forcefully interrupt tasks."
+"Watchdog Timers","Embedded systems need to operate continuously but cannot rely on human supervision, e.g: space probe
+Watchdog timers are hardware counters with their own clock that detect system failures.
+
+Function
+If the timer runs out, the watchdog assumes the system has a fault, and performs a recover action, which is usually a reset. (dog bites)
+The system is responsible for regularly resetting the timer when operating normally. (kick the dog)
+
+Watchdog Modes:
+Stuck Task Protection – Resets system if a task is locked up.
+Monitor Task – A dedicated task ensures all other tasks are running before resetting the watchdog.
+Time Scales – Watchdog timers operate on different time scales, depending on system requirements."
