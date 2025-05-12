@@ -1,0 +1,486 @@
+"What is a process, and how do threads and address spaces relate to it?","A process is an abstraction provided by the operating system to represent a running program. 
+It consists of an address space and one or more threads.
+
+An address space is an isolated area of memory assigned to a process - including the code, data, heap, and stack.
+
+A thread is the smallest unit of execution within a process. It runs code independently but shares the process's address space with other threads. Each thread has its own call stack and program counter, allowing multiple threads to execute concurrently within the same process.
+
+This shared memory model allows threads to communicate efficiently but introduces risks like race conditions, requiring careful synchronization."
+"Shared Memory Concurrency (Description + Key Issues)","An operation by one thread is visible in another thread if its effect can be seen via main memory.
+
+For two threads to communicate using shared memory:
+The sending thread must write a message (changing some piece of data )in to a memory location
+The sending thread notifies any receiver threads that it has done so (set a boolean flag to true)
+The receiving thread reads the message from the same shared memory location
+For synchronous communication, the receiving thread notifies the sender than it has done so.
+
+Key Issues: 
+Context Switches - If the OS changes which thread is executing midway through the order of the above process, it might break it.
+Compiler Reordering - The compiler may reoorder instructions for efficiency, which can also break due to the order required.
+Race Conditions - Two threads changing the same memory address at unexpected times."
+"Critical Regions, Mutual Exclusion and Locking","Critical Region: The part of the PROGRAM (source code) where a shared resource is accessed. (Each thread therefore has their own critical regions)
+
+Mutual Exclusion: If one thread is in its critical region for a resource then no other thread can be in their critical region for that resource.
+
+
+Locking:
+Different algorithms exist to implement mutual exclusion, ensuring that only one thread can access a critical section at a time.
+A naive approach is to use a shared boolean flag, where a thread checks if the flag is false (indicating the critical section is free), and then sets it to true to enter. However, this approach is flawed: if a thread checks the flag and is then preempted (context switch) before setting it, another thread may also see the flag as false and enter — violating mutual exclusion.
+Peterson’s Algorithm improves on this by combining intent flags with a ""turn"" variable. Each thread:
+
+
+Signals its intent to enter.
+
+
+Sets the turn to the other thread, indicating willingness to let the other go first.
+
+
+Waits if the other thread also wants to enter and it's their turn.
+
+
+This guarantees mutual exclusion — but only under a strict memory model. In modern systems, where memory operations may be reordered by the compiler or CPU, Peterson's algorithm requires memory barriers or atomic operations to function correctly. Without them, the visibility and order of reads/writes can break its correctness."
+"Memory Barriers and Atomicity","Compilers and hardware reorder instructions within individual threads. Although the entire CPU will still follow the same logic, the order in which one thread sees changes in memory made by another thread may not follow the logic of the source code.
+
+Memory barriers (also known as memory fences) are low-level CPU instructions that prevent both the compiler and the processor from reordering certain memory operations across the barrier. 
+This ensures that memory accesses appear in the correct order from the perspective of other threads or processors, which is crucial in concurrent programming.
+
+Atomic operations are indivisible operations that complete without the possibility of interruption. 
+This means that once an atomic operation begins, it runs to completion before any other thread can observe or modify the involved memory, ensuring data consistency in multithreaded environments.
+
+Both memory barriers and atomic operations are low-level synchronization mechanisms provided by the CPU. While they are often available directly in low-level languages, high-level languages typically expose them through concurrency libraries or language constructs like synchronized, volatile, or atomic types."
+"How is Modern Shared-Variable Concurrency Primarily Implemented?","Modern shared-variable concurrency is primarily implemented using locking algorithms that incorporate hardware-supported atomic operations and memory barriers, rather than classic software-only algorithms like Peterson's.
+Hardware-supported atomic operations (e.g., compare-and-swap (CAS), test-and-set, fetch-and-add) are built directly into the CPU instruction set (e.g., x86, ARM). These operations form the foundation for: Locks and mutexesLock-free and wait-free data structuresConcurrent programming libraries (like Java's java.util.concurrent, or C++'s )   These are faster, more reliable, and scalable, especially on multicore systems."
+"Locking (explicit vs intrinsic)","Locks are used to enforce mutual exclusion by blocking threads when a resource is not available. 
+High-level languages like Java provide locking mechanisms as part of their standard libraries, but under the hood, these mechanisms rely on hardware-supported atomic operations and memory ordering guarantees, combined with well-designed software algorithms.
+
+Intrinsic Locking (Implicit)
+
+
+Uses the synchronized keyword in Java.
+
+
+Automatically manages lock acquisition and release on an object’s intrinsic lock (monitor).
+
+
+Common for small, fine-grained critical sections (e.g., synchronized methods or blocks).
+
+
+Easier to use but less flexible.
+
+
+Explicit Locking
+
+
+Uses classes like ReentrantLock from java.util.concurrent.locks.
+
+
+Offers greater control, such as trying to acquire a lock with timeout or interruptibility.
+
+
+Can lock entire classes or more complex scopes.
+
+
+More powerful, but requires careful management to avoid deadlocks or confusion."
+"Monitors (The producer-consumer problem)","Monitors provide high-level communication primitives such as wait(), notify(), and notifyAll(). 
+They allow threads to coordinate access to shared resources safely.
+
+ The Producer-Consumer problem is a classic example where a producer thread writes data to a shared resource (like a buffer), and a consumer thread reads from it.
+ The key issue is ensuring the consumer doesn't read data before the producer has written it.Monitors help solve this problem by allowing threads to wait when a condition isn't met (e.g. buffer is empty) and to notify others when the condition changes (e.g. item added).
+ For example, the consumer waits if the buffer is empty, and the producer notifies the consumer once it has produced something.
+
+In Java, every object has an intrinsic monitor associated with it, as part of the Object class.
+ Calling o.wait() causes the calling thread to release the monitor lock on o and enter o's wait set.
+ Later, calling o.notify() wakes one arbitrary thread from the wait set for o, allowing it to attempt to reacquire the monitor lock before continuing execution."
+"Java.util.concurrent common structures (BlockingQueue and BlockingDequeue, CountDownLatch. Cyclic Barrier, Phaser)","The java.util.concurrent library provides built-in implementations of common concurrent structures.
+ These are generally preferable to writing custom synchronization logic, as they are well-tested and optimised.
+BlockingQueue and BlockingDeque
+
+
+Thread-safe queues and double-ended queues designed for concurrent access.
+
+
+Allow threads to block when reading from an empty queue or writing to a full one.
+
+
+
+CountDownLatch
+
+
+Enables multiple threads to coordinate using a one-time barrier.
+
+
+Threads call await() to block until the latch count reaches zero.
+
+
+The count is set initially and can only be decreased using countDown(); it cannot be reset.
+
+
+
+CyclicBarrier
+
+
+A reusable barrier: once all threads have called await(), the barrier resets to its initial count.
+
+
+Suitable for scenarios requiring repeated synchronization at defined checkpoints.
+
+
+The barrier can also be manually reset using reset().
+
+
+
+Phaser
+
+
+A generalisation of CyclicBarrier that allows dynamic registration and deregistration of threads.
+
+
+Supports coordination across multiple phases.
+
+
+Also enables hierarchical organisation of phases for more complex synchronisation patterns."
+"Message Passing Concurrency (Definition + Pros + Cons)","Definition
+Message passing concurrency is a model in which threads (or processes) interact exclusively by sending and receiving messages. Instead of sharing memory, all communication occurs through explicit message exchanges, which can be synchronous or asynchronous.
+
+Pros
+No shared memory: Eliminates the need for critical sections and mutex locks. Lower risk of deadlocks: Since there are no locks, traditional lock-based deadlocks are avoided. Ideal for distributed systems: Message passing aligns naturally with systems where memory cannot be shared. Clean abstraction: Well-defined interfaces make it easier to reason about communication and concurrency.
+Cons
+Speed! Message passing can be slower than shared memory due to context switching and data copying.
+Complexity: As the number of messages increases, managing communication overhead becomes more complex.However, message passing could become as efficient as shared memory communication with modern hardware support (architectural support for direct small messages between cores asnd a mapping table of threads to cores). This is an emerging paradigm."
+"Synchrony and Asynchrony in MPC (+ trade offs)","In general communication terms (not just in programming), synchronous and asynchronous describe whether participants need to be engaged at the same time for communication to occur.
+
+Synchronous message passing is when the sender blocks until the receiver is ready
+In synchronous message passing, the sender blocks until the receiver is ready to accept the message.
+ It is common in hardware description languages and is generally easier to reason about in small systems.
+ However, in distributed systems, achieving this coordination can be difficult or even impossible due to network delays and lack of global timing.
+
+
+Asynchronous message passing is when the sender does not block and messages are buffered until the receiver is ready.
+This model is the preferred choice for distributed applications because it allows components to operate independently.
+ However, it is harder to program: You usually send a message and set up a callback to handle the response later.These callbacks can appear non-linearly in the program flow, making debugging and reasoning about execution more difficult. The program’s control flow becomes driven by the arrival and handling of messages, rather than a straightforward sequence of instructions.."
+"Channels in MPC","In practice, communication between threads using message passing occurs through channels, which can facilitate different types of communication patterns:
+
+
+Handshake: One-to-one communication between a sender and a receiver thread.
+
+
+Multicast: One-to-many communication, where a message is sent to a group of specific threads.
+
+
+Broadcast: One-to-all communication, delivering the message to every thread in the system.
+
+
+To manage these patterns, it is common to use a naming scheme that uniquely identifies each communication channel.
+Messages are sent and received via these named channels, enabling organized and decoupled communication. 
+In some systems, channel objects are used, where:
+
+
+Send endpoints only allow sending messages.
+
+
+Receive endpoints only allow receiving messages.
+
+
+This separation of concerns enhances clarity and can help prevent misuse or race conditions in concurrent systems."
+"The Actor Model of Concurrent Programming","The Actor Model is a conceptual model for handling concurrency, inspired by ideas in quantum mechanics, general relativity, and programming paradigms from languages such as Lisp. It is implemented as a primitive in several modern programming languages, including Erlang, Scala, Swift, and Ruby.
+
+Core Principles
+
+
+Actors are the fundamental units of computation.
+
+
+No shared memory: Each actor operates independently and does not access the internal state of others.
+
+
+Unique addresses: Each actor has a unique address to which messages can be sent.
+
+
+Own thread of control: Actors process messages independently, allowing true concurrency.
+
+
+Mailbox: Each actor has a mailbox (a FIFO queue) to receive messages in the order they arrive.
+
+
+Message Passing
+
+
+Messages are the only way actors communicate — they consist of values, which can be typed or untyped.
+
+
+Messages can include addresses of other actors, allowing for dynamic communication topologies.
+
+
+Actors only send messages to actors whose address they already know (e.g., received in a message or created themselves).
+
+
+Actor Behaviours
+Upon receiving a message, an actor may:
+
+
+Send messages to other actors.
+
+
+Spawn new actors.
+
+
+Change its own internal behaviour (e.g., by altering how it handles future messages).
+
+
+This model enables a highly modular, scalable, and fault-tolerant approach to concurrent programming, especially useful in distributed systems."
+"Deadlocks (Formal Definition)","A deadlock is a situation in concurrent programming where a group of threads (or processes) are permanently blocked, each waiting for a resource that the other thread holds, and none of them can proceed."
+"Locking Contention and Locking Overhead","Locking contention 
+Occurs when multiple threads compete to acquire the same lock.
+When a thread tries to acquire a lock that's already held by another thread, it must wait (block). If many threads try to acquire the same lock frequently, they spend more time waiting than doing useful work.
+
+Locking Overhead Refers to the cost of acquiring and releasing a lock, even when there's no contention.
+Includes: Time spent checking lock state (e.g., in the CPU's cache or memory). CPU instructions required to manage synchronization. Cache invalidation and context switching overhead, particularly in systems with multiple cores."
+"Subroutines and Coroutines","A subroutine is a named block of code that performs a specific task. When a subroutine (such as a method or function) is called, the program's control flow jumps to that block, executes its instructions, and then returns to the point where it was called. Execution in the main program halts until the subroutine finishes—this is known as blocking behavior.
+
+
+A coroutine generalises this concept by allowing execution to be paused and resumed. Unlike subroutines, coroutines can yield control back to the caller without finishing, and later resume from where they left off. They enable non-blocking behavior, meaning one coroutine can start another without waiting for it to complete.
+The catch with coroutines is that, unlike threads, they don't run simultaneously. When coroutine A calls coroutine B, control transfers to B, and A is suspended. However, B can yield before finishing, allowing A to resume from where it left off. This cooperative switching between coroutines contrasts with subroutines, which must complete entirely before control returns.
+
+
+Coroutines are often implemented on a single thread or using a thread pool, rather than creating new threads for each task. 
+This allows them to provide concurrency (multiple tasks in progress) without parallelism (tasks running at the exact same time), which traditional multithreading can offer."
+"Coroutines vs Concurrency (Cooperative vs Pre-emptive Multitasking)","The core difference lies in how control is handed over between tasks and whether true parallelism is achieved.
+
+
+
+Concurrency with threads often enables true parallelism on multi-core systems, as multiple threads can execute simultaneously. However, context switches are controlled by the operating system, which may interrupt threads at unpredictable points. This makes it harder to reason about shared resources and often requires complex synchronization (e.g., locks, mutexes) to avoid race conditions.
+
+
+
+Coroutines provide concurrency without parallelism. They run on a single thread and cooperate by explicitly yielding control at known points. This is called cooperative multitasking. Because context switches are programmer-defined, coroutines are much easier to reason about. However, they can be less performant in CPU-bound workloads if true parallelism is required, and they demand more discipline in how yielding is handled."
+"Goroutines and Kotlin Coroutines","Goroutines (Go)
+
+
+What are they?
+
+Goroutines are lightweight, independently executing functions in Go, created with the go keyword. They are basically virtual threads which only use message passing (not shared memory).
+
+Scheduling Model:
+
+Managed by the Go runtime using pre-emptive multitasking. The runtime maps thousands of goroutines onto a small pool of OS threads.
+
+
+Parallelism:
+
+Goroutines can achieve true parallelism if GOMAXPROCS is set above 1, leveraging multiple CPU cores.
+
+
+Communication:
+
+Primarily through channels, following CSP (Communicating Sequential Processes) principles.
+
+
+Key Characteristics:
+
+
+No explicit coroutine lifecycle
+
+
+Fire-and-forget style; no structured parent-child relationships
+
+
+Context switching is runtime-managed and invisible to the programmer
+
+
+
+Kotlin Coroutines
+
+
+What are they?
+
+Kotlin coroutines are language-supported concurrency primitives that are built using coroutine builders, such as launch, async, and runBlocking.
+
+
+Structured Concurrency:
+
+Each coroutine is associated with a Job, giving it a clear lifecycle. This enforces hierarchical scoping: when a parent coroutine is cancelled, all its children are cancelled too.
+
+
+Cooperative Multitasking:
+
+Context switching is explicit, occurring only at suspension points (e.g., delay(), await()). This makes execution predictable and easier to reason about.
+
+
+Parallelism:
+
+Not automatic. Coroutines are concurrent by default, but can run in parallel when dispatched to a multi-threaded dispatcher (e.g., Dispatchers.Default).
+
+
+Key Characteristics:
+
+
+Built on top of Jobs for lifecycle control and cancellation
+
+
+Support structured concurrency, improving resource safety
+
+
+Use Dispatchers to control threading (e.g., Main, IO, Default)
+
+
+Ideal for asynchronous, non-blocking programming"
+"Thread Pools (Definition + Pros + Cons)","A thread pool is an object that manages a group of reusable threads for executing tasks. 
+Instead of creating a new thread for every task, tasks are submitted to the pool, which assigns them to existing threads. In Java, this is provided by the Executor interface, which defines a single method: void execute(Runnable task);
+
+Java provides several built-in thread pool implementations via the Executors utility class:
+
+
+newSingleThreadExecutor() – A pool with a single worker thread.
+
+
+newCachedThreadPool() – A pool with a dynamically resizing number of threads.
+
+
+newFixedThreadPool(int n) – A pool with a fixed number of threads.Pros
+
+
+Abstracts thread management away from the programmer.
+
+
+Reduces overhead from creating and destroying threads repeatedly.
+
+
+Improves efficiency by reusing threads for multiple tasks.
+
+
+Supports task queuing and flexible scheduling policies.
+
+
+
+Cons
+
+
+Deadlocks can occur if the pool size is too small and tasks block while waiting for others.
+
+
+Resource exhaustion if the pool is too large, leading to high memory and CPU usage.
+
+
+Thread leaks can occur if tasks throw exceptions and are not properly handled or if threads are not returned to the pool.
+
+ Key Consideration
+
+It's essential to choose an appropriately sized thread pool based on the workload to balance resource usage and responsiveness."
+"What is a leak in programming (general term)","Definition:
+In general, a leak in programming refers to a resource that is no longer needed but hasn't been properly released, so it continues to consume system resources unnecessarily. 
+Leaks usually happen when the program forgets to release something, or loses access to it without freeing it.
+This could be memory, threads, files or connections.
+
+Impacts:
+Cause performance degradation over time.Can lead to resource exhaustion (e.g. out of memory, too many open files).Often hard to detect until the program has been running for a while."
+"Futures and Promises","Futures and Promises are abstractions used to represent a value that will be available in the future - usually the result of an asynchronous computation running on a different thread or in a thread pool.
+
+Promise: A promise is a write-side handle - it is an object that produces a result, usually completed by some asynchronous task. You (or the system) fulfil a promise by assigning it a value or an error.
+
+Future: A future is the read-side handle - it’s an object that represents a placeholder for a result that’s not ready yet, but will be. You retrieve the result from a future once the associated promise has been fulfilled.
+
+Think of it like this:
+
+
+You create a Promise and get a corresponding Future.
+
+
+You pass the future to the consumer (e.g., return it from a method).
+
+
+Meanwhile, some computation happens asynchronously (e.g., in a thread pool).
+
+
+Once the result is ready, the promise is completed.
+
+
+The future becomes ""fulfilled"", and the result is accessible."
+"Async / Await","Core Idea: Mark a function with **async** to indicate it returns a future/promise. Use **await** inside that function to pause execution until another future/promise completes - without blocking a thread.
+This creates non-blocking, asynchronous flow with blocking-style readability.
+
+How it works: 
+If the value is not ready, the function suspends, like a coroutine, but does not block the underlying thread.
+The thread is returned to the system (or thread pool) to do other work."
+"Two measures of performance in a concurrent system?","Throughput - tasks per unit time
+Responsiveness - time until first response from a tasks"
+"What is scalability?","The concept of scalability refers to the ability to increase performance by increasing the number of system resources:
+Increasing clock speedIncreasing memoryIncreasing cache sizes
+However, the relationship between added resources and performance is not always linear. The actual scalability depends heavily on:
+
+
+How efficiently the system or code uses new resources.
+
+
+How much parallelism or concurrency is possible.
+
+
+Whether there are bottlenecks (e.g., I/O, locking, memory bandwidth).
+
+
+The architecture of the system (e.g., single-threaded vs multi-threaded, distributed vs monolithic)."
+"Amdahl's Law (+Derivation)","Ahmdahl's law is a useful guide for measuring theoretical limits on system performance based on parallel execution of a fixed task.
+
+Suppose that F is the fraction of a task that is sequential and let N be the number of processors (CPUs / Cores) available.
+The law states:
+speedup ≤ 1 / (F + (1 - F) / N) 
+
+This is essentially saying that the theoretical limit is bounded by the % of the program which is sequential. The more processes we have, the closer we get to it.
+
+
+Derivation:
+If T is the execution time of a task, then this can be written as T = FT + (1-F)*T
+By adding the time taken by the sequential portion (F) of the task and the parallel portion (1-F).
+If we use N processors, then theoretically the parallel portion would have a revised execution time of ((1 - F)*T) / N
+Therefore, the total execution would be T' = FT + ((1-F)*T) / N
+Then, the speedup as just a ratio is just T / T' - the original time to execute over the revised time.
+
+Therefore: Speedup (=  T / T')  
+= (T  /  (FT + ((1-F)*T) / N) 
+= 1 / (F + ((1-F) / N))"
+"Lock-Free Algorithms (CAS, Exponential Backoff, Elimination Arrays)","Lock-free algorithms allow the implementation of thread-safe data structures without traditional locking, which can significantly reduce lock contention. 
+While the code is delicate and carefully engineered, it can deliver excellent performance under high concurrency.
+
+
+Treiber Stack Example
+
+A classic example is the Treiber stack, a lock-free stack. 
+The idea is to add an element only if no other thread has modified the stack since the operation began. 
+This is achieved using a Compare-And-Set (CAS) instruction.
+
+
+Compare-And-Set (CAS)
+
+CAS is a hardware-supported atomic instruction available in many modern architectures (and in Java since version 5).
+
+It works as follows:
+
+CAS(V, A, B) — If the memory location V contains value A, it is atomically replaced with B, and the operation returns true. 
+If V does not contain A, nothing is changed, and the operation returns false.
+
+This mechanism allows us to implement lock-free updates by repeatedly attempting the operation until successful.
+
+Exponential Backoff
+
+When multiple threads compete for the same memory location, CAS may fail repeatedly, leading to high contention and wasted CPU cycles.
+
+To reduce this, threads can wait for a brief, randomized delay before retrying — doubling the wait time after each failure. This technique, known as exponential backoff, reduces contention and improves performance under load.
+
+
+Elimination Arrays
+
+In highly concurrent scenarios, elimination arrays allow threads to pair off and resolve their operations without accessing the shared structure.
+
+For example, if one thread wants to push and another wants to pop, the value can be passed directly between them — eliminating the need to touch the shared stack and reducing contention further."
+"Fine-Grained Concurrency (Definition + Pros + Cons)","Definition:
+Fine-grained concurrency is a concurrency control strategy where multiple locks are used to protect smaller parts of a data structure, rather than locking the entire structure at once.
+This allows more threads to operate concurrently without blocking each other unnecessarily. 
+This reduces lock contention
+
+Instead of using one big lock for the whole structure (called coarse-grained locking), we split the structure into smaller parts, each with its own lock. 
+This allows multiple operations to proceed in parallel as long as they don’t interfere.
+
+Pros:
+Increased parallelism: Threads can work on different parts of the structure at the same time. Better scalability: Performance scales more smoothly with increasing thread count. Reduced contention: Threads block each other less often.
+
+Cons:
+Complexity: More difficult to implement and reason about. Deadlock risk: Improper lock acquisition order can lead to deadlocks. Maintenance: Harder to debug and maintain than coarse-grained locking."
