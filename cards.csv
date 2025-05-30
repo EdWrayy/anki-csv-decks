@@ -1,0 +1,996 @@
+"What is an I/O Module and a Hardware Module for an embedded system?","Hardware Module
+Any specialized hardware other than the CPU and memory
+E.g: NPU - Neural Processing Unit (NPU)
+
+I/O Module
+A specific type of hardware module that handles input/output operations.
+Acts as an interface between the CPU and external devices (sensors, actuators, communication buses).
+E.g: ADC (Analog-to-Digital Converter), SPI/I2C hardware blocks"
+"What are Control registers? (+GPIO Example)","Control registers are special-purpose registers found in CPUs and peripheral devices. They are used to configure, manage, and control hardware behavior.
+Unlike general-purpose registers, which store arbitrary data during computation, control registers store settings, modes, flags, or status indicators that directly affect how hardware components operate.
+
+
+Writing to a control register can change the state or function of a device, such as enabling a feature, setting a mode, or resetting a peripheral.
+
+
+These registers are often wired directly into control circuits, meaning changes take immediate effect without needing additional software execution.
+
+
+Control registers are essential in real-time and embedded systems, where direct and deterministic hardware control is critical.We can write to them using MMIO / PMIOExamples: IO Devices, Graphics accelerators, Networking hardware (we can write a custom MAC address into a NIC's control register).Example: GPIO Mode Register (GPIOx_MODER) In embedded systems (e.g., ARM Cortex-M), the GPIOx_MODER register determines the function of each GPIO pin: 00 – Input mode 01 – Output mode 10 – Alternate function mode 11 – Analog mode By writing specific bit patterns to this control register, software can dynamically reconfigure the role of pins without physically changing the circuit."
+"MMIO vs Port Mapped I/O (Advantages and Disadvantages)","Two techniques that CPUs use to communicate with I/O devices
+
+Special I/O Instructions (a.k.a Port Mapped I/O)
+The CPU uses dedicated instructions, like IN and OUT (common in x86 architecture), to communicate with I/O devices.I/O devices are assigned to a separate I/O address space, distinct from main memory.These addresses (called ports) point to registers on the I/O devices themselves (not in RAM).Since we keep the port mapped addresses logically seperate with different instructions, they can freely conflict memory addresses without issue. (usually 16 bit number)The same number can be an address in I/O and memory space and the CPU will know which one we are talking about.Advantages: Keeps memory address space free.Disadvantages: Requires special instructions (not native to programming languages, requires inline assembly often); less portable.    
+Memory Mapped I/O (MMIO)
+I/O devices (like a UART, timer, or GPU) have internal control registers.The system maps some physical memory addresses to those device registers.The CPU uses normal load/store instructions (e.g., MOV, LDR, STR) to read/write to these addresses.
+In 32 bit systems, address space = 2³² = 4 GB max, so if we use up some of our addresses for MMIO, then we don't have enough addresses left to fully utilise our RAM anymore.Overwhelmingly preferred in modern systemsAdvantages: Simpler and uses existing memory instructions.Disadvantages: Reduces available memory address space. (In mordern 64 bit systems addresses are abundant so this is not an issue)"
+"MMIO vs Special I/O Instructions (Port Mapped) trade offs","Size of address space
+MMIO means there are less address spaces in memory to be used for data
+But it means there are much more available addresses for I/O devices
+
+Size of instruction set 
+Instruction set bits are precious and I/O instructions uses up more of them
+
+Convenience of access
+Easier to access MMIO
+Works naturally in C/C++ 
+(Port mapped requires inline assembly to access in C)
+
+Cache Compilications
+MMIO means that input registers may change without instructions from the CPU.
+(MMIO addresses reflect live hardware state, as soon as we read them we get the latest update).
+Therefore we can't guarantee whether a cached value is still accurate, because even if we haven't changed it, it might be a stale value."
+"Harvard vs Von Neuman Architecture","Harvard
+Key Features:Separate memory for instructions and data.
+Independent buses for instruction and data fetch, allowing simultaneous access.
+Commonly used in embedded systems, microcontrollers, and DSPs (Digital Signal Processors).
+
+Trade-offs:
+More complex hardware due to separate memory buses.
+More expensive to implement at scale.
+Less flexible in handling self-modifying code (since instructions and data are strictly separated).
+Has the potential to be faster than Von Neumann architecture, especially in certain specialized scenarios
+
+Von Neuman
+Shared memory for both instructions and data.
+Uses a single bus, meaning instructions and data are fetched sequentially.
+Used in most general-purpose computers, including PCs, laptops, and servers.
+There is shared memory for program instructions and data
+Popular in most PCs 
+
+Trade-offs:
+Slower execution speed due to the ""Von Neumann bottleneck"" (single bus limits memory access speed).
+Simpler and more cost-effective to implement.
+Allows self-modifying code, which can be useful in certain applications (e.g., JIT compilation).
+Much simpler to program
+
+
+
+Key Insight: Harvard architecture is potentially faster, but less general purpose and more complex, which is why it is only really used in embedded systems."
+"RISC vs CISC","RISC (Reduced Instruction Set Computing)
+
+
+Simple, fixed-length instructions that usually execute in 1 clock cycle
+
+
+Easier pipelining; relies on more registers to reduce memory use
+
+
+Common in ARM architecturesPushes more work onto the compiler rather than the instruction set.
+
+Trade-offs:
+
+
+Requires more instructions for complex tasks
+
+
+Depends on compiler to optimize
+
+
+Programs may be larger
+
+
+
+
+
+CISC (Complex Instruction Set Computing)
+
+
+Complex, variable-length instructions (some take multiple cycles)
+
+
+Denser machine code, saving memory space
+
+
+Common in x86 (Intel/AMD)
+
+
+Can operate directly on memory, requiring fewer registers
+
+
+Trade-offs:
+
+
+More complex and power-hungry hardware
+
+
+Pipelining is harder to implement efficiently"
+"What is a SoC","A SoC (System on Chip) is a single chip that contains all the main parts of a computer, like the CPU, memory, storage, and input/output connections. 
+It is used in smartphones, tablets, and IoT devices because it is small, fast, and energy-efficient.
+E.g: RP2040 / RP2350"
+"Features of the RasPi Pico, RP2040, RP2350 and Cortex-M0+?","RasPi Pico
+A microcontroller board that includes:
+
+RP2040 microcontroller (dual-core ARM Cortex-M0+)
+Power supply via micro-USB (5V input, 3.3V logic level)
+Clock (up to 133 MHz configurable clock)
+Connectivity: UART, I2C, SPI, and USB 1.1 (no built-in Wi-Fi/Bluetooth)
+Extra peripherals:
+
+26 GPIO pins (including 3 analog inputs)
+Programmable I/O (PIO) for custom interfaces
+On-chip timer, PWM, and ADC
+RP2040
+The SoC inside the Raspberry Pi Pico (1), designed by Raspberry Pi:
+Dual-core ARM Cortex-M0+ CPU (up to 133 MHz)
+264 KB RAM (no built-in Flash, requires external storage)
+Flexible I/O with PIO (Programmable I/O)
+DMA (Direct Memory Access) support
+USB 1.1 Host/Device supportNo built-in Wi-Fi or Bluetooth
+
+
+RP2035The chip inside the Raspberry Pi Pico 2:Higher clock speed of 150 MHz520KB of RAM (almost double)Maintains compatibility with RP2040 boards
+ARM Cortex-M0+
+A low-power ARM processor design used in microcontrollers (like the RP2040)
+32-bit RISC architecture (ARMv6-M ISA)
+Designed for efficiency (low power, small size, fast execution)
+Used in embedded systems and IoT devices
+No built-in floating-point unit (FPU) (relies on software for floating-point math)"
+"Typical Run-time Errors in Embedded Systems","Boundary Violations:
+
+Counter overflow (e.g., integer wrap-around)
+Buffer overflow (writing beyond allocated memory)
+Wrong pointer usage (dereferencing invalid memory)
+
+
+
+Unanticipated Program Flow:
+
+Interrupt issues (unexpected behavior from interrupts)
+Race conditions (multiple processes accessing shared data incorrectly)
+
+
+
+Incomplete State Preservation:
+
+Incorrect handling of registers, variables, or peripheral states across function calls or power cyclesRuntime errors caused by failing to properly save or restore key information
+For example, global or static variables might get corrupted or not properly reinitialized after certain events (like a reset)."
+"How to Debug Embedded Systems","Gather Data:
+
+Software instrumentation is difficult.
+Use hardware instrumentation (e.g., LEDs, serial output).Print statements over USB
+
+
+
+Make Bug Reproducible:
+
+Identify the fault condition (when and how it occurs).
+
+
+
+Use Debugging Tools:
+
+Simulators (test software behavior without real hardware).
+Oscilloscopes & Logic Analyzers (analyze signals and timing)."
+"Types of Interrupts and how they are handled in event-driven embedded systems?","How are interrupts triggered?
+Embedded systems typically run a continuous main loop to perform routine tasks, but respond to interrupts to handle real-time events efficiently.ISRs (hardware interrupts) are meant to handle asynchronous external events triggered by hardware — like timers expiring, I/O peripherals signaling data ready, or external pins changing state.For software-triggered events, you don’t need interrupts. Instead, you handle those entirely within your program’s normal flow by: Calling functions directly / Using flags, polling loops, or event callbacks / Employing software signals or messaging mechanisms (depending on your system).ISRs for each hardware are explicitly enabled in the program, and then the corresponding function (the mapping is defined in the vector table) needs to be implemented by overriding it in C and specifying what needs to be done.
+
+Types of Interrupts:
+
+
+Hardware Interrupts: Triggered asynchronously by external devices (e.g., timers, sensors). Managed by the interrupt controller.
+
+
+Software Interrupts: Triggered intentionally via instructions (e.g., INT, SVC, ECALL) to request system-level services.
+
+
+Interrupt Handling Process:
+
+
+Processor completes current instruction.
+
+
+Acknowledges the interrupt signal.
+
+
+Hardware saves some CPU state (e.g., PC, registers).
+
+
+Software may disable further interrupts to avoid nesting.
+
+
+Executes the corresponding Interrupt Service Routine (ISR).Software restores the state it manually saved (e.g., general-purpose registers).
+
+
+Then, hardware restores the remaining state (e.g., PC and status flags) during the execution of a special ""return from interrupt"" instruction, which is software-triggered but hardware-executePrecise Interrupt Handling:
+
+
+The Program Counter (PC) and key registers are preserved before jumping to the ISR.
+
+
+After the ISR finishes, execution resumes as if uninterrupted.
+
+
+This model enables timely responses while keeping the system efficient and deterministic."
+"Key principles for designing efficient ISRs in embedded systems?","Keep ISRs Fast:
+
+Avoid long execution times.
+Prefer non-interruptible ISRs (simplifies timing).
+Helps in bounding performance and ensuring real-time behavior.
+
+
+
+Keep ISRs Simple:
+
+Debugging ISRs is difficult, so minimize complexity.
+Offload complex tasks to the main loop or background processing.
+
+
+
+Minimize Latency:
+
+How long does it take to respond?
+Is the delay deterministic? (Critical for real-time systems)
+Both hardware and software contribute to latency.
+
+
+
+Reduce Jitter:
+
+Jitter is the variation in response time between ISRs.
+Response time depends on CPU state when the interrupt occurs."
+"How are Interrupt Service Routines (ISRs) handled in C?","Interrupt Service Routines (ISRs)
+
+
+Most high-level programming languages don't directly support writing ISRs due to their close hardware interaction.
+
+
+Typically, interrupts are managed by the Operating System (OS) and accessed indirectly through libraries or event handlers (e.g., keyboard/mouse input, network packets).
+
+
+ISR Support in C
+
+
+Standard C does not directly support ISRs, but many compilers provide extensions for declaring them.
+
+
+Microcontroller vendors supply a vector table, a predefined list of memory addresses pointing to various ISRs.
+This allows the code to jump directly to the ISR when triggered.\You enable specific interrupts programmatically in your code, usually by configuring peripheral registers. This happens after startup but before you expect the interrupt to occur.
+E.g: NVIC_EnableIRQ(TIM2_IRQn);
+The hardware peripheral defines which internal event triggers an interrupt signal. For instance, the Timer peripheral will generate an interrupt request when it overflows or reaches a compare value.
+This mapping is fixed by hardware; you don’t choose which event triggers which interrupt vector — the microcontroller datasheet defines it.
+
+
+To define a custom ISR, you implement a function matching the name specified in the vendor's vector table.
+
+If you enable an interrupt without defining an implementation, then the default implementation will usually just be to enter an infinite loop.
+You can only connect hardware devices to interrupt lines if those lines exist and support that kind of interrupt input. 
+
+Example: ARM Cortex-M (with CMSIS and GCC)void TIM2_IRQHandler(void) {
+    // Check interrupt flag, clear it, and handle event
+}
+
+
+
+The ISR's function name must exactly match the corresponding vector table entry (e.g., TIM2_IRQHandler).
+
+
+Vendor-supplied startup files or libraries (such as CMSIS) handle the vector table setup.
+
+
+
+Using Variables in ISRs
+
+
+Variables accessed by both ISRs and the main program must be declared as volatile. This prevents incorrect compiler optimizations by ensuring direct memory access.
+
+
+While necessary, volatile variables reduce performance because they cannot be cached in CPU registers."
+"Event Characteristics and Interrupt Vectors","Types of Events:
+
+Internal Events (generated within the system):
+
+Timer overflow
+Completion of ADC conversion
+
+External Events (caused by external devices):
+
+Keyboard input
+Analog comparator exceeding a threshold
+
+
+
+
+
+Timing Considerations:
+
+Maximum arrival rate: How often the interrupt occurs.
+Deadline for servicing: How quickly it must be handled.
+Cost if missed? (System failure, data loss, etc.)
+
+
+
+Interrupt Vector Table:
+
+An interrupt vector is a memory address that points to the Interrupt Service Routine (ISR) for a specific interrupt.
+The processor needs an ISR (Interrupt Service Routine) for each enabled interrupt source.
+A table at the start of program memory (Interrupt Vector Table) stores the address of the ISR for each interrupt source.
+When an interrupt occurs, the processor branches to the corresponding ISR address from this table"
+"Processes (what are they and what are their states) in Multitasking","Back:
+
+A process/task/thread is an abstraction of a program in execution.
+Multitasking allows the CPU to switch between tasks when one is waiting for I/O (pseudo-parallelism).
+
+Process States:
+
+Running – Actively using the CPU.
+Ready – Runnable but waiting for CPU time.
+Blocked – Waiting for an external event (e.g., I/O completion)."
+"Scheduling (Definition, Requirements, Algorithm Overview)","Decides which process from the set of ready processes will get the CPU next
+
+Requirements
+FairnessResponse timeThroughputTurnaroundCPU utilizationDeadlines (hard / soft)PredictabilityAdherence to policy
+
+Algorithms
+First-come first-served
+Shortest job firstRound robin (quanta, preemptive, context switch)Shortest remaining timePriority Scheduling
+Lottery Scheduling"
+"Context switching (+Types)","Context switching is the process of saving and restoring a task's execution state when switching between processes or threads. It is required for multitasking.
+
+Handled by the OS
+
+Preemptive Multitasking: The OS forcibly switches tasks based on a scheduler (e.g., time slice, priority).
+Cooperative Multitasking: Tasks voluntarily yield control when they are ready (less overhead but risk of blocking).
+On most microcontrollers without an operating system (bare-metal programming), you generally have to manage task scheduling yourself."
+"Round Robin Scheduling (+2 Types)","Round Robin Scheduling is a preemptive scheduling algorithm where each process gets a fixed time slice (quantum) and runs in a cyclic order.
+The time quantum (also called time slice) is the fixed amount of CPU time a process gets before the scheduler moves to the next process.
+
+Types:
+Short Quantum:
+
+Fast response time
+High context switching overhead
+
+
+Long Quantum:
+
+More efficient (fewer context switches)
+Longer response time for short tasks"
+"Lottery Scheduling (pros/cons)","Lottery Scheduling is a probabilistic CPU scheduling algorithm where:
+
+Each process receives ""lottery tickets"" based on its required CPU share.
+A ticket is randomly selected, and the CPU is allocated to the process holding that ticket.
+Processes can share tickets with other processes (useful for cooperation).
+Advantage: Fair and flexible CPU distribution.
+Disadvantage: No strict guarantees on when a process will get CPU time"
+"CPU Utilization formula, + from a set of periodic tasks + schedubility + assumptions","Formula:
+U = Ctotal - Cidle ≤ 1
+Where:
+U = CPU Utilization
+Ctotal = Total CPU time available (100%)
+Cidle = Fraction of CPU time spent in idle task or sleeping
+
+
+From a set of periodic tasks
+Given a set of Tasks T1 ... Tn where each task has:
+A periodictiy pi (the amount of time between consecutive starts) A fixed CPU time ci (the time per period)
+The CPU utilization is: 
+U = Σni=1 (ci / pi) 
+
+Example: If task Ti has pi=100 ms and ci = 20 ms, it uses 20 / 100 = 0.2 or 20% of the CPU time.
+This ratio ci / pi​​​ indicates the fraction of total CPU capacity that task Ti requires.
+This is because it needs to start every pi seconds, and it will use ci of those seconds to complete, so it runs for (ci / pi) of the CPU's total time.
+A real-time system is schedulable (i.e., all tasks can meet their deadlines) under Earliest Deadline First (EDF) if:
+U ≤ 1
+
+Assumptions:
+Tasks are periodicThe deadline for a task is its next invocationContext switches take no time"
+"How to schedule real time systems?","Real-time systems require predictable worst-case performance to ensure tasks meet their deadlines.For a periodic task set {T1,T2,…,Tn}, when we say a scheduler ""schedules"" a task set, we mean all tasks meet their deadlines indefinitely. For all jobs of all tasks: their execution completes by their deadline.
+1. Static Cyclic Scheduling (Simple Case)
+
+
+Idea: Tasks are scheduled in a fixed, repeating cycle.
+
+
+Key Assumption: All tasks are periodic and known in advance.
+
+
+How it works:
+
+
+Create a table that assigns fixed time slots to each task.
+
+
+The schedule repeats every cycle (usually the lowest common multiple of all task periods).
+
+
+Tasks must complete execution within their assigned slots.
+
+
+
+
+Limitation: Inflexible and inefficient for systems with irregular or aperiodic tasks.
+
+
+
+
+2. Priority-Based Scheduling
+Used in systems where more flexibility is needed.
+A. Fixed (Static) Priority Scheduling
+
+
+Priorities are assigned at compile time and never change.
+
+
+Example: Rate Monotonic Scheduling (RMS)
+
+
+Tasks with shorter periods get higher priority.
+
+
+Works well for periodic tasks with fixed frequencies.
+
+
+Schedulability can be determined mathematically.
+Always pick the highest priority task when it is ready (highly available high priority tasks can monopolise the CPU)
+
+
+
+B. Dynamic Priority Scheduling
+
+
+Priorities are assigned at runtime based on task properties (e.g., deadlines).
+
+
+Example: Earliest Deadline First (EDF)
+
+
+Task with the closest deadline gets the highest priority.
+
+
+More efficient than RMS in terms of CPU utilization.
+
+
+Can schedule any set of periodic tasks as long as total utilization ≤ 1.Always pick the highest priority task when it is ready (however the highest priority task will change)"
+"Rate Monotonic Scheduling","Rate Monotonic Scheduling (RMS) is a fixed-priority scheduling algorithm for real-time systems
+It is a greedy algorithm, which is optimal for fixed-priority tasks.
+
+Requirements:
+Tasks are independentTasks have fixed CPU requirement
+Free context switchingDeadline is task period
+Qualities:
+The most frequent tasks receives the highest priority
+Shorter period = higher priority
+If RMS can be used, it is optimal. 
+No other fixed-priority assignment performs better.
+RMS cannot fully utilize 100% of CPU time due to scheduling inefficiencies, but the exact CPU usage limit depends on the number of tasks. (Unless task set is harmonic)
+A stricter bound applies to RMS utilisation
+U = Σni=1 (ci / pi) ≤ n(21/n - 1), as n  → ∞, U ≤ ln2 ≈ 69%
+This means we often waste around 30% of CPU time, however we can use this time to perform low priority, non-real time tasks."
+"Harmonic Task Sets","Every task period is a multiple of the period of any hgiher priority taskE.g: p1  = 15ms, p2  = 30ms, p3  = 120msRMS can reach 100% utilization with harmonic task setsHarmonic tasks sets are easy to analyze due to the regular execution pattern"
+"Earliest Deadline First (EDF)","EDF is a dynamic priority scheduler that always runs the task with the earliest deadline (most urgent) first.
+Used for scheduling real time systems
+Utilization condition: The system is schedulable if:
+U = Σni=1 (ci / pi) ≤ 1
+
+Advantages: Optimal for dynamic priority: If a task set can be scheduled, EDF will schedule it. 
+Can handle dynamically changing task priorities. 
+
+Disadvantages: More complex than Rate Monotonic Scheduling (RMS). 
+Higher overhead due to frequent priority recalculations."
+"Riverside/Irvine Operating System (RIOS)","A lightweight, portable task scheduler designed for embedded systems education.
+Developed collaboratively by the University of California
+≈ 20 lines of C  → understandable.
+
+Cooperative Multitasking: Tasks run until they voluntarily yield. 
+Task List: Tasks are stored in a simple queue and executed sequentially. 
+No Preemption: The system does not forcefully interrupt tasks."
+"Watchdog Timers","Embedded systems need to operate continuously but cannot rely on human supervision, e.g: space probe
+Watchdog timers are hardware counters with their own clock that detect system failures.
+
+Function
+If the timer runs out, the watchdog assumes the system has a fault, and performs a recover action, which is usually a reset. (dog bites)
+The system is responsible for regularly resetting the timer when operating normally. (kick the dog)
+
+Watchdog Modes:
+Stuck Task Protection – Resets system if a task is locked up.
+Monitor Task – A dedicated task ensures all other tasks are running before resetting the watchdog.
+Time Scales – Watchdog timers operate on different time scales, depending on system requirements."
+"FAT File Systems 
+General File System Definitions (Sector, Directory Entry, Partition, Partition Table, MBR, VBR)FAT File System Structure (Volume ID, Reserved, FAT1, FAT2, Root Dir, Data Region, Unused)Formulae to navigate that structureLimitations of FATRecognizing the type of FAT FS","The file system is an important component of an OS, providing file structure, naming, access and operations.
+The actual physical storage device will have its own firmware, whilst the OS will have low-level driver to interact with it.
+
+The FAT (File Allocation Table) system is an old file system developed by Microsoft. It is lightweight and simple.
+The Pico doesn't come with a file system, so you need to explicitly integrate one (FAT is a good choice). (Unless using micropython, done for you)
+
+Important Definitions:
+Sector – The smallest addressable unit of data storage on a disk. It is a fixed-size block (typically 512 bytes or 4096 bytes) used for reading and writing data.Directory Entry – A metadata record that describes a file. It typically includes the file name, size, timestamps, and the location of the file's data on disk.Partition – A defined section of a physical disk that functions as a separate logical volume. Each partition can be formatted with its own file system and used independently.Partition Table – A structure that stores information about the partitions on a disk, such as their sizes, locations, and types.Master Boot Record (MBR) – The first sector of a disk (usually 512 bytes). It contains the partition table and the bootloader code that initiates the boot process by loading the OS or another bootloader.Volume Boot Record (VBR) – The first sector of a bootable partition. If the partition is marked bootable, the MBR may transfer control to the VBR, which contains code to start the operating system from that partition. This contains the Volume ID, BPB (BIOS Parameter Block: holds vital file system parameters like sector size, number of FATs, sectors per cluster, etc.), and more.So within a disk, we may have many different partitions. Each partition can run its own file system.
+A single parition running FAT file system contains the following:
+
+Volume ID - Located at sector 0 of the partition, a 4 byte identifier of the volume.
+Reserved - Follows the boot sector. Contains reserved sectors (number specified in BPB). Usually kept free for future or system use.FAT1 - A table that keeps track of which clusters are used, free, or chained to other clusters. Functions like a linked list for file storage.FAT2 - A redundant copy of FAT1. Used as a backup in case FAT1 becomes corrupted. Stored right after FAT1.Root Dir - Contains directory entries in the root directory - metadata about files (e.g. file name, extension, attributes, timestamps, starting cluster, file size). In FAT12/16, this is a fixed-size region following the FAT tables. In FAT32, root directories are stored in the data region like regular files, so this region is absent. Each route directory is 32 bytes, and there is a maximum number allowed.Data Region (Clusters) - This is where actual file and folder content is stored. Divided into clusters - groups of sectors (size specified in the BPB). A file spans one or more clusters. The FAT table keeps track of how those clusters are linked together.Unused - Any remaining space in the partition not yet allocated to files. Available for new file or directory data.
+
+
+Formulae
+FATstart = LBAbegin + Reserved Sectors x (Bytes per Sector) (LBA = Logical Block Address, just the address of that part of the disk)
+Rootstart = FATstart + Number of FATs x (Sectors per FAT) x (Bytes per Sector)
+Datastart = Rootstart + Max Roots x 32
+These formulae can be very helpful to read data from an SD card when memory is too tight to implement a full FAT file system.
+Format SD card with a single FAT 16 or 32 partition.
+Write a single file to it.
+Volume ID of the partition will be on the second sector, calculate the start of the file, if we can recognise where the end is then read it, else calculate the start of the root directory, and read the last 4 bytes of the first entry (=file length), then read that many bytes.
+
+Limitations:
+Originally developed in the late 1970s for floppy disks of less than 500kB per volume.
+Limited by bootsector to 232 sectors
+Originally FAT12 and FAT 16 limited file names to 8 chars + 3 char suffix (a backwards compatible fixed called VFAT was introduced to hide longer names in directory entries with an used property flag
+
+Recognizing ther FAT FS type:
+The number of clusters c correspond to the number of bits, if:
+<4085 = FAT12 (<212)
+<65525 = FAT16 (<216)
+else = FAT32"
+"Reliability (Functionality States, Unreliablility Causes, Solutions, Tradeoffs)","Definiton
+Reliability will always be a problem in computer science. 
+Entropy always increases over time, its a law of physics. We move from order to disorder.
+
+Functionality States
+The number of possible states of a system is far greater than the number of correct states.
+States can be grouped into the following sets:
+Functional - Works as expected
+Degraded - Still has some functionality
+Destroyed - Doesn't work at all
+
+Unreliability Causes
+Software and hardware bugs
+Random State Changes (soft error, where data is changed but hardware is not damaged)
+This can be caused by random bit flips from EM radiation from supernova high energy particals, EM waves from solar wind, ect.
+
+Solutions
+All systems naturally deteriorate from functional towards destroyed.
+Simple systems deterioate slower than complex ones.
+Redundant hardware (redunancy is required)
+Integrety checks (parity checks, check sums, CRCs)
+Error Correcting Codes
+
+Tradeoffs 
+Redundancy increases hardware surface, amount of code and data.
+This means faults, bugs and corruption become more likely.
+Increasing reliability often makes security hardware (for example retrying failed connections helps Dos attacks)"
+"Hamming Distance Error Detection (+Formulae)","The Hamming distance between two binary strings is the number of bit positions at which the corresponding bits differ.
+ For example: 011 and 001 have a Hamming distance of 1 (only the middle bit differs). When using binary codewords to transmit data, we can design a set of valid encodings (called a codebook) with a minimum Hamming distance d between any two valid codewords. 
+This distance determines the code’s ability to detect and correct errors.If we are receiving binary data and mapping it to a set of valid encodings we have, then depending on the hamming distance between each valid encoding, we may be able to detect errors when we receive data.
+
+Minimum Hamming Distance (d) and Capabilities:
+
+
+d = 1:
+
+
+Any single-bit error transforms one valid codeword into another valid codeword.
+
+
+No error detection or correction is possible.
+
+
+
+
+d = 2:
+
+
+A single-bit error causes an invalid codeword (i.e., not in the valid set).
+
+
+Single-bit error detection is possible, but correction is not (because we can’t determine the original codeword with certainty).
+
+
+
+
+d = 3:
+
+
+A single-bit error results in a codeword at distance 1 from the original, and distance ≥2 from any other valid codeword.
+
+
+We can detect and correct single-bit errors because the faulty series of bits we receive is closer (in Hamming distance) to one valid codeword than to any others.
+
+
+
+
+
+General Rule:
+For n bit errors:We need an n + 1 hamming distance to detect themWe need an n + 2 hamming distance to correct them"
+"Security in Embedded Applications (Limitations, Types of Attacks, Solutions)","Limitations
+Resources - Not enough RAM and CPU for strong encryption software
+Power Budget - Often IoT is low power
+Availability / Reliablility - Devices like pacemakers can't shut down if attacked
+
+Types of Attacks
+Hardware AttacksFirmware Attacks
+Soltuions
+Minimize configurablillity (no external RAM, hard-wire, ROM instead of Flash)
+Security as part of the design (added hardware)
+Check integrity of inputs (hardware checksums)
+Remove debug modes from production code"
+"Hardware Attacks","Why are hardware attacks conducted?
+ Hardware attacks are typically carried out to: Extract firmware stored on the device.Gain access to intellectual property (IP) such as proprietary algorithms or design.Support cryptographic decryption by retrieving secret keys or breaking encryption mechanisms.Infiltrate a device to gain unauthorized control or introduce malicious code.Types of Hardware Attacks 
+1. Passive AttacksThese attacks involve observing the hardware's normal operation without interfering with it. The goal is to extract information based on external characteristics. Common methods include:
+Monitoring input/output patterns.Measuring power consumption (e.g. power analysis attacks).Capturing electromagnetic emissions.These observations can be used to infer implementation details or recover sensitive data like cryptographic keys.
+    2. Active AttacksThese attacks involve directly interfering with the hardware to push it into abnormal or faulted states. The aim is to bypass protections or reveal hidden functionality. Techniques include:
+Glitching (e.g. voltage or clock manipulation).Inducing faults through temperature or radiation.Physically tampering with the device, sometimes destructively.
+
+
+Example
+A well-known example of a hardware attack involves chemical etching on decapped CPUs. In this process, the protective casing of the CPU is removed (decapping), and chemical agents are used to expose and inspect the underlying silicon. This allows attackers to visually analyse how the circuit is etched, potentially revealing the layout and logic of secure elements."
+"Firmware Attacks","Why are firmware attacks carried out?
+ Firmware attacks are particularly dangerous because: They enable the deployment of more advanced and persistent forms of malware.Virtually all hardware components - from hard drives to USB sticks - contain some form of firmware, making them widespread attack vectors. 
+Key Characteristics of Firmware Attacks Persistence: Once firmware is reprogrammed, the malicious code can survive a full disk reformat or even operating system reinstallation, making it extremely difficult to remove.Invisibility: Malicious firmware can maintain a hidden storage area that is invisible to the OS or user-level software. This allows it to store data or tools persistently, even after the device appears to be wiped.Undetectability: Firmware-based malware is often invisible to traditional security software, such as antivirus programs, because it operates below the operating system level.  
+Example: USB Drive Firmware Exploits USB drives contain microcontrollers that handle how the device interacts with the host computer. These microcontrollers: Are responsible for announcing the type of device (e.g. storage, keyboard, network adapter).Can be reprogrammed to impersonate other devices, such as a keyboard or mouse, enabling malicious actions like injecting keystrokes automatically."
+"Infrastructure Attacks - Stuxnet and Duqu","Why?
+
+Infrastructure attacks target critical systems - such as power grids, manufacturing plants, or military infrastructure - to cause disruption, damage, or espionage. 
+These attacks often exploit vulnerabilities in industrial control systems (ICS) and SCADA environments.
+
+Notable Examples Stuxnet (2010): A sophisticated worm believed to be state-sponsored.Targeted Iran’s nuclear centrifuges by exploiting zero-day vulnerabilities in Windows and manipulating PLCs (programmable logic controllers).Caused physical damage while appearing as normal operation to monitoring systems.   Duqu (2011): Closely related to Stuxnet in codebase and design.Aimed not at sabotage, but at gathering intelligence from industrial targets.Functioned as a precursor for future attacks, collecting data on systems and security setups.How they work:Modular Design: Separate modules for spreading, spying, payload delivery, and persistence.Rootkit Integration: Hides files, processes, and system changes to avoid detection.Encrypted Payloads & Communications: Prevents reverse engineering and detection.Zero-Day Exploits: Uses previously unknown software vulnerabilities for entry and privilege escalation.Stolen Digital Certificates: Signed with real vendor certificates to appear trustworthy.Targeted Scanning: Searches for specific software or hardware (e.g. Siemens PLCs).Air-Gap Bridging: Spreads via USB to reach isolated systems.Command and Control (C2): Communicates with remote servers for updates or commands.Self-Destruct Logic: Can erase itself after a period or if not in the intended environment."
+"Bluffing Devices","These are systems that use microcontrollers to create the illusion of enhanced product performance, either by exploiting psychological phenomena or manipulating how users perceive the device - without actually improving its core functionality.
+
+Examples: Volkswagen rev counter: In some VW vehicles, the tachometer (rev counter) is not a direct mechanical reading from the engine but is instead controlled by a microcontroller to move more smoothly or in a more engaging way. This gives a perception of refinement or performance without any actual mechanical enhancement.Artificial Acceleration Sounds in EVs
+Fake Fan Noises in Laptops: Provides reassurance that the device is on and working, despite low power consumption or passive cooling."
+"Simplex vs Duplex Communication","Simplex: One-way communication. Data can only flow in a single direction — either sending or receiving, but not both.
+
+Example: A TV broadcast (transmits to viewers, but viewers don’t send data back).
+
+
+
+Duplex: Two-way communication. Data can be sent and received using the same connection or protocol.
+
+There are two types:
+
+
+Half-Duplex: Both directions possible, but only one at a time (e.g., walkie-talkies).
+
+
+Full-Duplex: Simultaneous two-way communication (e.g., phone calls, Ethernet)."
+"Parallel vs Serial Communication","Parallel vs Serial Communication
+
+
+Parallel Communication
+
+Data is transmitted simultaneously across multiple physical wires - one bit per wire. Still used internally in CPU  / RAM (e.g., 64-bit or 128-bit memory buses)
+
+Pros:
+
+
+Higher data transfer rates at short distances
+
+
+Simple to implement at low speeds
+
+
+
+
+Cons:
+
+
+Signals must remain synchronized — at high speeds, this becomes difficult (timing skew)
+
+
+Requires more physical space (more wires)
+
+
+
+
+Example: Centronics printer port (used in the 1970s–80s)
+
+
+
+
+
+Serial Communication
+
+Data is sent one bit at a time over a single wire or channel. Most modern communication is serial.
+
+
+Pros:
+
+
+Fewer wires, easier to route
+
+
+More reliable at high speeds and over longer distances
+
+
+Modern protocols include features like error checking
+
+
+
+
+Common Protocols:
+
+
+UART (e.g., 8N1)
+
+
+SPI
+
+
+I²C
+
+
+CAN"
+"Synchronous vs Asynchronous Communication","Synchronous Communication
+
+The sender and receiver share a common clock or have a fixed agreement on when data is sent.
+
+
+Data is transmitted at regular intervals.
+
+
+The receiver must be ready to read data at the exact same rate.
+
+
+Example: SPI, I²C (use a shared clock line)
+
+
+
+
+
+Asynchronous Communication
+
+No shared clock - data is sent with start and stop bits to signal when each unit of data begins and ends.
+
+
+The sender can transmit data at arbitrary intervals.
+
+
+The receiver uses these framing bits to synchronise to each data byte.
+
+
+Example: UART (e.g., 8N1 serial)"
+"Baud Rate","Definition: Baud rate is the number of signal changes (symbols) per second in a communication channel. In most serial communication systems (like UART), each symbol represents one bit, so baud rate ≈ bits per second, including all protocol overhead (start, stop, and parity bits).
+
+
+
+Includes overhead:
+
+The effective data rate (payload throughput) is slightly lower than the baud rate due to framing bits. For example, in 8N1:
+
+
+1 start bit + 8 data bits + 1 stop bit = 10 bits per byte
+
+
+So only 80% of bits are actual data
+
+
+
+
+
+Bounded by hardware limits:
+
+
+The CPU clock, UART peripheral, and crystal oscillator accuracy all affect achievable baud rates.
+
+
+Common values: 9600, 19200, 115200 baud
+
+
+
+
+
+Auto-bauding:
+
+
+Some systems can detect the baud rate automatically by analysing the timing of the first known character (e.g. ‘U’ = 0b01010101)
+
+
+Useful for devices where the baud rate is unknown or varies"
+"What is a serial port?","Definition: A physical interface (e.g. DB9 connector) on a device that supports serial communication.Used for: Connecting to external devices like modems, sensors, or microcontrollers. 
+They can be based on different electrical standartds: RS-232, TTL UART, RS-485, USB-to-serial, etc."
+"What is RS-232?","Definition: An old electrical standard for serial communication. 
+Formalises: Voltage levels: +3 to +15V (logic 0), -3 to -15V (logic 1) Signal timing, noise margins, pinouts (e.g., DB9/DB25) Used in: Legacy PCs, industrial equipment. It is one type of serial communication implemented over serial ports."
+"UART and USART","A serial one-to-one communication protocol between microcontrollers.
+Uses two physical connections, one for sending and one for receiving data.
+Uses a data framing protocol (for example 8N1, but can be others).
+Requires its own hardware block to handle framing (all protocols need a corresponding hardware block).
+
+UART (Universal Asynchronous Receiver/Transmitter
+What it is: A hardware module in microcontrollers or chips. Function: Converts parallel data (inside the CPU) to serial format for transmission, and vice versa. Asynchronous: No shared clock; uses start and stop bits. Often uses RS-232 for physical communication standards 
+
+USART (Universal Synchronous/Asynchronous Receiver/Transmitter)
+Like UART, but also supports synchronous communication. Synchronous mode: Uses a shared clock between sender and receiver (e.g. SPI-style, using a third connection). Can operate as UART or in synchronous modes."
+"8N1","Definition: A data frame format for asynchronous serial communication.
+8N1 is the most common framing protocol for UART.
+
+ Stands for: 8 data bitsNo parity bit1 stop bit   Defines how each byte is framed during transmission (start bit 0, 8 data bits, stop bit 1).
+When idle and no communication, the line stays high (1). When it drops to 0, the line knows communication is now coming.
+If two devices are communicating over UART, they must both use the same data frame format."
+"SPI","Serial Periphial Interface is a communication protocol which uses a master slave architercture to connect one master microcontroller to many slave microcontrollers.
+SPI Sends raw data (no framing).
+
+Key Features:
+SerialSynchronousFull DuplexHigh-speed: 66MHz Short distance (mainly due to being synchronous [Clock skew] and the high speed)
+It uses 4 main wires (/pins):
+Chip Select - Selects a specific slave board, tells it to expect communication.Serial Clock - Since it is synchronous, the master and slave need to agree on a clcok speed. The master drives the clock speed over this line.MOSI - Master out, Slave In (Actual data)MISO - Master in, Slave Out (Actual Data)
+Each line from the master board can be wired up to many slave boards, which the master can select for communication."
+"I2C","I²C is a multi-master, multi-slave, serial communication protocol that allows multiple chips to communicate over just two shared wires.
+Wires Used:
+
+
+SDA (Serial Data) — Bidirectional data line
+
+
+SCL (Serial Clock) — Clock line driven by the master
+
+
+
+
+Key Features:
+
+
+Serial — Data transmitted one bit at a time
+
+
+Synchronous — Clock provided by master
+
+
+Half-Duplex — Data flows in only one direction at a time
+
+
+Slow — Typically 100 kHz (Standard Mode), 400 kHz (Fast Mode), or up to 3.4 MHz (High-Speed Mode)
+
+
+Short-distance — Typically limited to <1 meter due to clock skew and signal degradation
+
+
+
+
+Electrical Signaling: Open-Drain Logic
+I²C uses open-drain (or open-collector) outputs instead of push-pull.
+
+
+Push-pull: Two transistors — one pulls high, one pulls low (faster but only one device allowed to drive the line).
+
+
+Open-drain: Only the pull-down transistor is present. When off, an external pull-up resistor brings the line high.
+
+
+This allows multiple devices to share the same SDA line without conflict — any device can pull the line low, but none can drive it high directly.
+
+
+This shared-bus design is slower but enables safe multi-device communication.
+
+
+Addressing and Communication
+
+
+The master sends a START condition (a special signal transition).
+
+
+It then sends the 7-bit address of the target slave.
+
+
+A R/W bit follows to indicate read or write operation.
+
+
+All slaves receive this — the one with a matching address responds with an ACK (acknowledge bit); the others remain silent.
+
+
+Data is then exchanged in 8-bit chunks, each followed by an ACK/NACK.
+
+
+
+
+7-bit addressing allows for up to 128 devices
+
+
+10-bit addressing exists for extended use
+
+
+
+Advanced Features
+
+
+Clock stretching: Slower slaves can hold SCL low to delay the master, giving themselves more time to process.
+
+
+Multi-master support: Multiple controllers can share the bus, but must handle bus arbitration if they try to send at the same time."
+"CAN","CAN (Controller Area Network) is a multi-master, serial communication protocol originally developed by Bosch in the 1980s for automotive applications - specifically for communication between Electronic Control Units (ECUs). 
+Today, it is widely used in industrial automation, robotics, aerospace, and medical systems due to its robustness and real-time capabilities.
+
+Uses two lines:
+CAN-H: High signal
+CAN-L: Low signal
+Signals are transmitted as a voltage difference between H and L, so it is very noise-resistant
+
+Key Features:
+SerialSynchronousHalf-DuplexReal-timeNoise-ResistentFast (1Mb/s)Multimaster (with fixed priorities)
+How it works
+All devices (nodes) are connected to the same two-wire bus.Each node has a CAN controller (often inside a microcontroller) and a transceiver (handles electrical signaling).Nodes transmit frames with:
+
+
+11-bit or 29-bit IDs (used as both address and priority)
+
+
+Up to 8 bytes of data (or 64 bytes in CAN FD)
+
+
+
+
+Arbitration occurs when multiple nodes transmit at once:
+
+
+The message with the lowest ID number (highest priority) wins the bus
+
+
+Other nodes stop transmitting and try again later — no collisions or corruption
+ CAN ≠ Ethernet or UART
+
+
+CAN is not packet-based like Ethernet
+
+
+It is not point-to-point like UART
+
+
+It is a shared bus with built-in arbitration and prioritisation, ideal for real-time systems"
+"Real-Time vs Batch processing","Real-time 
+Systems in which the correctness of the system depends not only on the logical results of computation, but also on the time at which those results are produced.
+Real-time = Deterministic timing with guaranteed worst-case response time.
+There are two types:
+Hard real-time - Missing a deadline = system failureSoft real-time - Occasional deadline misses are tolerable, but performance degrades
+Non-real-time 
+No guaranteed timing - can process things whenever the system has time. Best-effort system: Tries to be fast, but doesn’t guarantee deadlines. Batch processing: Executes on large sets of data without time constraints. Collect data first, process later."
+"What is the bit width of a CPU?","It refers to the width of the CPU's registers, buses, and addressable memory space.
+This is the number of bits the CPU can process in parallel in a single operation.
+This is because wider databuses can move more data per clock cycle, registers can holder more bits, and the ALU can perform higher bit maths operations. (e.g: add 2 64 bit numbers in one operation).
+
+E.g: 32-bit CPU
+Register Width: 32 bits
+Address Space: Up to 4 GB (2³²)
+Data width: Processes 32 bits at a time
+
+ What does it affect?
+1. RAM limits 32-bit CPUs can only address up to 4 GB of RAM 64-bit CPUs can address much more (tens of terabytes depending on OS and hardware) 2. Software compatibility 32-bit CPUs can only run 32-bit OSes and apps 64-bit CPUs can run both 64-bit and 32-bit apps (on a 64-bit OS) 3. Performance 64-bit CPUs can process larger integers, wider data, and more registers in one instruction Useful for scientific computing, graphics, encryption, large datasets, etc."
+"Pipelining","Pipelining is a CPU technique that improves instruction throughput by overlapping the execution stages of multiple instructions.For example, an instruction like ADD R1, R2, R3 typically involves several operations: Fetch, Decode, Execute, and Write-back. Instead of completing one instruction at a time, pipelining allows the CPU to work on different stages of multiple instructions simultaneously.Once the pipeline is full, the CPU can complete one full instruction per clock cycle, with each stage processing a different instruction in parallel.In contrast, non-pipelined systems complete all stages of one instruction before starting the next, typically requiring multiple clock cycles per instruction.However, pipelining can be disrupted by data dependencies between instructions, which may require stalls or additional logic to resolve."
+"ICs and Chips","Integrated Circuit (IC)
+An integrated circuit is a tiny electronic device made from semiconductor material (usually silicon) that contains a complete electronic circuit on a single chip.
+
+Rather than wiring together separate components (like transistors, resistors, and capacitors), an IC fabricates them together into one miniaturised unit.
+ICs are built by etching circuit patterns onto silicon using a process called photolithography.
+
+Before ICs, circuits were large, slow, and expensive to produce.
+
+Almost all modern electronics rely on ICs.
+
+Chips
+The term ""chip"" is informal and context-dependent.
+
+It generally refers to a silicon IC, but in practice it might specifically mean:
+
+
+A CPU (Central Processing Unit)
+
+
+A Memory chip (RAM, Flash)
+
+
+A full System-on-Chip (SoC) that combines CPU, GPU, and more
+
+
+So, every chip is an IC, but not every IC is the same kind of chip."
+"What is a microcontroller?","A microcontroller is a compact integrated circuit designed to perform specific control tasks within an embedded system. 
+It includes a processor, memory, and input/output (I/O) peripherals all on a single chip.
+
+A microcontroller is like a tiny, self-contained computer built for doing one job, reliably and efficiently, often in real-time.
+A microcontroller is essentially a small embedded computer with no operating system (or just a minimal one, like a real-time OS if needed). 
+It's designed to run a single, dedicated program directly on the hardware."
